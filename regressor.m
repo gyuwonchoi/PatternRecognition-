@@ -11,7 +11,7 @@ data_num = length(trainset);  % sample num
 node_num = 10;                % num of nodes in hidden layer 
 input_num = 2+1;              % x1, x2, and bias -1
 batch_num = 225;
-epoch = 50000;
+epoch = 5000;
 lr = 0.001;                   % learning rate
 
 % input initialization 
@@ -24,7 +24,7 @@ dk = trainset(:, 3, :);       % groudn truth
 wj = normrnd(0, 1, [input_num, node_num, batch_num]);    
 wk = normrnd(0, 1, [node_num, 1, batch_num]);        
 
-x = 0;
+x = 1;
 y = -inf;
 
 % train : Neuron j & k 
@@ -38,7 +38,7 @@ for i= 1:epoch
 
     error = dk - yk;         
     error_batch = pagemtimes(error, error);
-    error_sum = sum(error_batch, 3);
+    error_sum = sum(error_batch, 3)/225;
 
     % neuron k
     delta_k = pagemtimes(error, pagemtimes(yk, 1-yk));    
