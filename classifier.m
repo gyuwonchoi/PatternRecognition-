@@ -7,7 +7,10 @@ class = load_class('./iris97.txt');
  
 % divide each class to trainset and testset 
 trainload= cat(3, trainset(:, :, 1:25), trainset(:, :, 51:75), trainset(:, :, 101:125));
+trainload(:,5,:)=-1;
+
 testload= cat(3, trainset(:, :, 26:50), trainset(:, :, 76:100), trainset(:, :, 126:150));
+testload(:,5,:)=-1;
 
 traincls= cat(3, class(:, :, 1:25), class(:, :, 51:75), class(:, :, 101:125));
 testcls = cat(3, class(:, :, 26:50), class(:, :, 76:100), class(:, :, 126:150));
@@ -16,26 +19,26 @@ testcls = cat(3, class(:, :, 26:50), class(:, :, 76:100), class(:, :, 126:150));
 seed= randperm(length(trainload));
 trainload=trainload(:,:,seed);
 traincls=traincls(:,: ,seed);
-trainload(:,5,:)=-1;
-
-testload(:,5,:)=-1;
 
 % one-hot coding 
 traincls=one_hot(traincls);
+testcls=one_hot(testcls);
 
 % training parameters
-epoch = 100000;
-lr = 0.001;                    
+epoch = 50000;
+lr = 0.01;                    
 alpha = 0.9;
 
 input_num = 5;
-hidden_num = 3;
+hidden_num = 5;
 output_num = 3;
 sample_num = 75;
 
 % plot
 x =1;
 y_nop = inf;
+test_e = inf;
+train_e = inf;
 
 % weights declariation : row x column x batch   
 wj = normrnd(0, 1, [input_num, hidden_num, sample_num]);    
@@ -72,14 +75,17 @@ for i= 1:epoch
     % draw chart error_sum x epoch
     y_nop = [y_nop error_sum];
 
-%     test_error = cal_error(wj, wk, 1);  % test 
-%     train_error = cal_error(wj, wk, 0); % train
-% 
-%     test_e = [test_e test_error];
-%     train_e =[train_e train_error];
+    test_error = cal_error(testload, testcls, wj, wk);  % test 
+    train_error = cal_error(trainload, traincls, wj, wk); % train
+
+    test_e = [test_e test_error];
+    train_e =[train_e train_error];
 
     x = [x i];
 end
+
+f1 = figure('Name', 'train vesus test');
+plot(x,train_e, x, test_e)
 
 % with momentum 
 wj = normrnd(0, 1, [input_num, hidden_num, sample_num]);    
@@ -125,15 +131,24 @@ for i= 1:epoch
 
     % draw chart error_sum x epoch
     y_mmt = [y_mmt error_sum];
-
-%     test_error = cal_error(wj, wk, 1);  % test 
-%     train_error = cal_error(wj, wk, 0); % train
-% 
-%     test_e = [test_e test_error];
-%     train_e =[train_e train_error];
 end
 
+f1 = figure('Name', 'momentum');
 plot(x, y_nop, x, y_mmt)
+
+function error_sum = cal_error(dataload, class, wj, wk)
+    vj = pagemtimes(dataload , wj);            
+    yj = sigmoid(vj);
+
+    vk = pagemtimes(yj , wk);              
+    yk = sigmoid(vk);
+
+    error = class - yk;
+
+    error_= pagetranspose(error);
+    error_batch = pagemtimes(error, error_);
+    error_sum = sum(error_batch, 3)/75;
+end
 
 function mat=one_hot(input)
     for i=1:75
