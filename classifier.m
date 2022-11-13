@@ -81,7 +81,59 @@ for i= 1:epoch
     x = [x i];
 end
 
-plot(x, y_nop)
+% with momentum 
+wj = normrnd(0, 1, [input_num, hidden_num, sample_num]);    
+wk = normrnd(0, 1, [hidden_num, output_num, sample_num]);    
+y_mmt = inf 
+
+for i= 1:epoch
+    % forward
+    vj = pagemtimes(trainload , wj);           % 225 x sample_num x node_num 
+    yj = sigmoid(vj);
+
+    vk = pagemtimes(yj , wk);              
+    yk = sigmoid(vk);
+
+    error = traincls - yk;
+
+    error_= pagetranspose(error);
+    error_batch = pagemtimes(error, error_);
+    error_sum = sum(error_batch, 3)/75;
+
+    % neuron k
+    delta_k = pagemtimes(error,  pagemtimes(yk, 'transpose', 1-yk, 'none')); 
+    if i >1
+      wght_del_k =  lr * pagemtimes(delta_k,'transpose', yj, 'none') + alpha* wght_del_k;      % momentum 
+    else
+      wght_del_k = lr * pagemtimes(delta_k,'transpose', yj, 'none'); 
+    end
+
+    % neuron j
+    delta_j_sig = pagemtimes(wk, 'none', delta_k, 'transpose' ); 
+    delta_j = diagonal(pagemtimes(yj, 'transpose', (1-yj), 'none'));
+    delta_j = delta_j + (delta_j_sig);
+
+    if i >1
+      wght_del_j =  lr * pagemtimes(delta_j, trainload) + alpha* wght_del_j;      % momentum 
+    else
+      wght_del_j = lr * pagemtimes(delta_j, trainload);  
+    end
+
+    % update weight 
+    wj = wj + pagetranspose(wght_del_j);
+    wk = wk + pagetranspose(wght_del_k);
+
+    % draw chart error_sum x epoch
+    y_mmt = [y_mmt error_sum];
+
+%     test_error = cal_error(wj, wk, 1);  % test 
+%     train_error = cal_error(wj, wk, 0); % train
+% 
+%     test_e = [test_e test_error];
+%     train_e =[train_e train_error];
+end
+
+plot(x, y_nop, x, y_mmt)
 
 function mat=one_hot(input)
     for i=1:75
